@@ -4,6 +4,7 @@ import { useLiveQuery } from "@tanstack/react-db";
 import { useQueries } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { env } from "renderer/env.renderer";
+import { resolveProjectIconUrl } from "renderer/hooks/host-projects/resolveProjectIconUrl";
 import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
 import { authClient } from "renderer/lib/auth-client";
@@ -63,7 +64,7 @@ export interface AccessibleV2Workspace {
 	projectId: string;
 	projectName: string;
 	projectRepoId: string | null;
-	projectGithubOwner: string | null;
+	projectIconUrl: string | null;
 	hostId: string;
 	hostName: string;
 	hostIsOnline: boolean;
@@ -94,7 +95,7 @@ export interface V2WorkspaceHostOption {
 export interface V2WorkspaceProjectOption {
 	projectId: string;
 	projectName: string;
-	githubOwner: string | null;
+	iconUrl: string | null;
 	count: number;
 }
 
@@ -109,10 +110,7 @@ export interface UseAccessibleV2WorkspacesResult {
 		string,
 		{ hostName: string; isOnline: boolean; isLocal: boolean }
 	>;
-	projectsById: Map<
-		string,
-		{ projectName: string; githubOwner: string | null }
-	>;
+	projectsById: Map<string, { projectName: string; iconUrl: string | null }>;
 }
 
 interface UseAccessibleV2WorkspacesOptions {
@@ -371,7 +369,10 @@ export function useAccessibleV2Workspaces(
 					projectId: project.projectKey,
 					projectName: project.name,
 					projectRepoId: repo?.id ?? null,
-					projectGithubOwner: project.repoOwner ?? repo?.owner ?? null,
+					projectIconUrl: resolveProjectIconUrl({
+						icon: project.icon,
+						repoOwner: project.repoOwner ?? repo?.owner ?? null,
+					}),
 					hostId: workspace.hostId,
 					hostName: host.name,
 					hostIsOnline: host.isOnline,
@@ -521,7 +522,7 @@ export function useAccessibleV2Workspaces(
 				projectId: row.projectId,
 				projectName: row.projectName,
 				projectRepoId: row.projectRepoId,
-				projectGithubOwner: row.projectGithubOwner ?? null,
+				projectIconUrl: row.projectIconUrl ?? null,
 				hostId: row.hostId,
 				hostName: row.hostName,
 				hostIsOnline: row.hostIsOnline,
@@ -613,7 +614,7 @@ export function useAccessibleV2Workspaces(
 			byProject.set(workspace.projectId, {
 				projectId: workspace.projectId,
 				projectName: workspace.projectName,
-				githubOwner: workspace.projectGithubOwner,
+				iconUrl: workspace.projectIconUrl,
 				count: 1,
 			});
 		}
@@ -641,13 +642,13 @@ export function useAccessibleV2Workspaces(
 	const projectsById = useMemo(() => {
 		const map = new Map<
 			string,
-			{ projectName: string; githubOwner: string | null }
+			{ projectName: string; iconUrl: string | null }
 		>();
 		for (const workspace of enriched) {
 			if (map.has(workspace.projectId)) continue;
 			map.set(workspace.projectId, {
 				projectName: workspace.projectName,
-				githubOwner: workspace.projectGithubOwner,
+				iconUrl: workspace.projectIconUrl,
 			});
 		}
 		return map;
